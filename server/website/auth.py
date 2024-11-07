@@ -146,3 +146,76 @@ def logout(current_user_id):
     logout_user()
     session.pop('user', None)
     return jsonify({"message": "Logged out successfully"}), 200
+
+
+@auth.route("/forgot_password", methods=['GET', 'POST'])
+def forgot_password():
+    if request.method == 'POST':
+        data = request.get_json()
+        email = data.get('email')
+        user = users_collection.find_one({"email": email})
+        if user:
+            token = s.dumps(email, salt='forgot-password')
+            msg = Message("Reset password", recipients=[email])
+            link = url_for("auth.reset_password", token=token, _external = True)
+            msg.body = f"Please click on the link to reset your password: {link}"
+            mail.send(msg)
+            return jsonify({"message": "Password reset link sent"}), 200
+        else:
+            return jsonify({"error": "User does not exist"}), 400
+    return jsonify({"message": "Forgot password endpoint ready"}), 200
+
+
+@auth.route("/reset_password/<token>", methods=['GET', 'POST'])
+def reset_password(token):
+    if request.method == 'POST':
+        try:
+            email = s.loads(token, salt='forgot-password', max_age=3600)
+        except:
+            return jsonify({"error": "Invalid or Expired token"}), 400
+        user = users_collection.find_one({"email": email})
+        if user:
+            data = request.get_json()
+            password1 = data.get('password')
+            password2 = data.get('confirm_password')
+            if password1 == password2:
+                users_collection.update_one({"email": email}, {"$set": {"password": generate_password_hash(password1, method='pbkdf2:sha256')}})
+                return jsonify({"message": "Password reset successfully"}), 200
+            else:
+                return jsonify({"error": "Passwords don't match"}), 400
+        else:
+            return jsonify({"error": "User does not exist"}), 400
+    return jsonify({"message": "Reset password endpoint ready"}), 200
+
+
+@auth.route("/settings", methods=["PUT"])
+@token_required
+def settings(current_user_id):
+    data = request.get_json()
+    user = users_collection.find_one({"_id": ObjectId(current_user_id)})
+
+    email = data.get("email")
+    firstName = data.get("firstName")
+    password = data.get("password")
+    confirm_password = data.get("confirm_password")
+
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    if email:
+        existing_user = users_collection.find_one({"email": email})    
+        if existing_user and existing_user["_id"] != ObjectId(current_user_id):
+            return jsonify({"error": "Email already exists"}), 400
+        user["email"] = email
+
+    if firstName:
+        user["firstName"] = firstName
+
+    if password and confirm_password:
+        if password == confirm_password:
+            user["password"] = generate_password_hash(password, method='pbkdf2:sha256')
+        else:
+            return jsonify({"error": "Passwords don't match"}), 400
+        
+    users_collection.update_one({"_id": ObjectId(current_user_id)}, {"$set": user})
+    return jsonify({"message": "User updated successfully"}), 200

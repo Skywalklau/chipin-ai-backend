@@ -8,5 +8,8 @@ python-dotenv
 numpy
 pandas
 scikit-learn
-
+opencv-python
 torch
+pytesseract
+fuzzywuzzy
+requests

@@ -58,8 +58,12 @@ def create_session(current_user_id):
         "participants": participants
     }
     session_id = str(sessions_collection.insert_one(session).inserted_id)      
-    socketio.emit('session_created', {"session": session, "session_id": session_id})
-    return jsonify({"message": "Session created", "session_id": session_id, "session": str(session)}), 201
+    socketio.emit('session_created', {"session": dict(session), "session_id": session_id})
+
+    socketio.emit("user_joined", {"session_id": session_id, "user_id": current_user_id})
+
+
+    return jsonify({"message": "Session created", "session_id": session_id, "session": dict(session)}), 201
 
 @sessions.route('get_session/<session_id>', methods=['GET'])
 @token_required
@@ -72,7 +76,7 @@ def get_session(current_user_id, session_id):
             "session_name": session["session_name"],
             "isClosed": session.get("status") == "closed",
             "positions": session["positions"],
-            "total_for_person": calculate_total_for_user(current_user_id, session), ##### current_user or request?
+            "total_for_person": calculate_total_for_user(current_user_id, session),
             "total": session["total"],
             "participants": session["participants"],
             "admin_id": session["admin_id"],
@@ -146,9 +150,9 @@ def delete_session(current_user_id, session_id):
             socketio.emit("session_deleted", {"session_id": session_id}, broadcast=True)
             return jsonify({"message": "Session deleted successfully"}), 200
         else:
-            return jsonify({"message": "Only the session admin can delete the session"}), 403
+            return jsonify({"error": "Only the session admin can delete the session"}), 403
     else:
-        return jsonify({"message": "Session not found"}), 404
+        return jsonify({"error": "Session not found"}), 404
     
 @sessions.route('create_link/<session_id>', methods=['GET'])
 @token_required
