@@ -1,0 +1,12 @@
+flask
+Flask-PyMongo
+flask_mail
+flask_login
+PyJWT
+flask-socketio
+python-dotenv
+numpy
+pandas
+scikit-learn
+
+torch
