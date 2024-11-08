@@ -486,6 +486,14 @@ def processReceipt(img):
     # print("Original food details")
     # print(foodDetailsOriginal)
 
+    for i in range(len(detailsOriginal)):
+        # for second last element check if empty set
+        if i == len(detailsOriginal) - 2:            
+            if detailsOriginal[i] == set():                
+                detailsOriginal[i] = detailsCanny[i]            
+        elif detailsOriginal[i] is None:
+            detailsOriginal[i] = detailsCanny[i]
+
     
     resultCanny = getProcessedFoodDetails(foodDetailsCanny)
     resultOriginal = getProcessedFoodDetails(foodDetailsOriginal)
@@ -500,6 +508,7 @@ def processReceipt(img):
 
     print("Final Result")
     print(result)
+    return (detailsOriginal, result)
 
     # displayImagesSideBySide(deskewedReceipt, imgReceiptCanny)
     # cv.imshow("Contour image", imgContour)
