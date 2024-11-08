@@ -1,5 +1,6 @@
 flask
 Flask-PyMongo
+pymongo[srv]
 flask_mail
 flask_login
 PyJWT

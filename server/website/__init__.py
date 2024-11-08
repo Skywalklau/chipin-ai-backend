@@ -32,8 +32,8 @@ def create_app():
     app.config['MAIL_PORT'] = getenv("MAIL_PORT")
     app.config['MAIL_USERNAME'] = getenv("MAIL_USERNAME")
     app.config['MAIL_PASSWORD'] = getenv("MAIL_PASSWORD")
-    app.config['MAIL_USE_TLS'] = getenv("MAIL_USE_TLS")
-    app.config['MAIL_USE_SSL'] = getenv("MAIL_USE_SSL")
+    app.config['MAIL_USE_TLS'] = getenv("MAIL_USE_TLS").lower() == "true"
+    app.config['MAIL_USE_SSL'] = getenv("MAIL_USE_SSL").lower() == "true"
     app.config['MAIL_DEFAULT_SENDER'] = getenv("MAIL_DEFAULT_SENDER")
 
     app.config["MONGO_URI"] = getenv("MONGO_URI")
