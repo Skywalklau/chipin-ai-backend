@@ -20,11 +20,11 @@ def get_old_sessions(current_user_id):
         session_data = {
             "session_name": session["session_name"],
             "positions": session["positions"],
-            "total_for_person": calculate_total_for_user(current_user_id, session),
-            "total": session["total"]
+            "total_for_person": float(calculate_total_for_user(current_user_id, session)),
+            "total": float(session["total"])
         }
         response_list.append(session_data)
-    return jsonify(response_list), 200
+    return jsonify({"sessions_list": response_list}), 200
 
 
 def calculate_total_for_user(user_id, session):
@@ -39,18 +39,19 @@ def calculate_total_for_user(user_id, session):
 @token_required
 def create_session(current_user_id):
     data = request.get_json()
+    restaurant_details = data.get("restaurantDetails")
     session_name = f"{datetime.datetime.now()} - {data.get('restaurantName')}"
     session_positions = []
     total = 0
     admin_id = str(current_user_id)
-    created_at = datetime.datetime.now()
+    created_at = str(datetime.datetime.now())
     receipt = data.get("receipt")
     status = "active"
     participants = [str(current_user_id)]
     session = {
         "session_name": session_name,
         "session_positions": session_positions,
-        "total": total,
+        "total": float(total),
         "admin_id": admin_id,
         "created_at": created_at,
         "receipt": receipt,
@@ -63,7 +64,7 @@ def create_session(current_user_id):
     socketio.emit("user_joined", {"session_id": session_id, "user_id": current_user_id})
 
 
-    return jsonify({"message": "Session created", "session_id": session_id, "session": dict(session)}), 201
+    return jsonify({"message": "Session created", "session_id": session_id, "session": dict(session), "restaurantDetails": restaurant_details}), 201
 
 @sessions.route('get_session/<session_id>', methods=['GET'])
 @token_required
@@ -76,13 +77,14 @@ def get_session(current_user_id, session_id):
             "session_name": session["session_name"],
             "isClosed": session.get("status") == "closed",
             "positions": session["positions"],
-            "total_for_person": calculate_total_for_user(current_user_id, session),
-            "total": session["total"],
+            "total_for_person": float(calculate_total_for_user(current_user_id, session)),
+            "total": float(session["total"]),
             "participants": session["participants"],
             "admin_id": session["admin_id"],
             "created_at": session["created_at"],
+            "receipt": session["receipt"]
         }
-        return jsonify(session_data), 200
+        return jsonify({"session_data": session_data}), 200
     else:
         return jsonify({"error": "Session not found"}), 404
     
@@ -115,8 +117,8 @@ def join_session():
 def update_session(current_user_id):
     data = request.get_json()
     session_id = data.get("sessionId")
-    position_index = data.get("positionIndex")
-    amount = data.get("amount")
+    position_index = int(data.get("positionIndex"))
+    amount = int(data.get("amount"))
     session = sessions_collection.find_one({'_id': ObjectId(session_id)})
 
     if session:        
@@ -131,7 +133,7 @@ def update_session(current_user_id):
             {"_id": ObjectId(session_id)},
             {"$set": {"positions": positions, "total": total}}
         )
-        socketio.emit("session_updated", {"session_id": session_id, "positions": positions, "total": total}, broadcast=True)
+        socketio.emit("session_updated", {"session_id": session_id, "positions": positions, "total": total})
         return jsonify({"message": "Session updated successfully"}), 200
     else:
         return jsonify({"error": "Session not found"}), 404
@@ -147,7 +149,7 @@ def delete_session(current_user_id, session_id):
         if session["admin_id"] == current_user_id:
             # Delete the session
             sessions_collection.delete_one({"_id": ObjectId(session_id)})            
-            socketio.emit("session_deleted", {"session_id": session_id}, broadcast=True)
+            socketio.emit("session_deleted", {"session_id": session_id})
             return jsonify({"message": "Session deleted successfully"}), 200
         else:
             return jsonify({"error": "Only the session admin can delete the session"}), 403
