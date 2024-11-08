@@ -70,13 +70,20 @@ def register():
                 "password": generate_password_hash(password1, method='pbkdf2:sha256'),
                 "verified": False
             }
-            users_collection.insert_one(new_user)
+            user_id = users_collection.insert_one(new_user).inserted_id
+
+            user_data = {
+                "user_id": str(user_id),
+                "email": email,
+                "firstName": firstName,
+                "created_at": str(datetime.datetime.utcnow())
+            }
 
             # login_user(new_user, remember=True)
             # log_activity("signup", f"User {new_user.firstName} signed up")
             # log_activity("verification_email_sent", f"User {new_user.firstName} was sent the verification email")
             
-            return jsonify({"message": "Verification mail sent"}), 201                    
+            return jsonify({"message": "Verification mail sent", "user_data": user_data}), 201                    
 
     return jsonify({"message": "Signup endpoint ready"}), 200
 
@@ -96,11 +103,14 @@ def confirm_email(token):
         else:
             users_collection.update_one({"email": email}, {"$set": {"verified": True}})    
             user_id = str(user["_id"])
-            new_user = User(str(user_id), user["email"])
-            # login_user(new_user)    
+            user_data = {
+                "user_id": str(user_id),
+                "email": email,
+                "firstName": user["firstName"],                                    
+            }
             jwt_token = generate_token(user_id)                
             # log_activity("user_verified", f"User {user.firstName} verified their email")
-            return jsonify({"message": "Email confirmed! You can now login!", "jwt_token": jwt_token}), 200
+            return jsonify({"message": "Email confirmed! You can now login!", "jwt_token": jwt_token, "user_data": user_data}), 200
     else:
         return jsonify({"error": "Invalid email! Please signup"}), 400
 
@@ -122,8 +132,13 @@ def login():
                     user_json = pickle.dumps(user)
                     session['user'] = user_json
                     user_id = str(user["_id"])  
+                    user_data = {
+                        "user_id": str(user_id),
+                        "email": email,
+                        "firstName": user["firstName"],                                    
+                    }
                     jwt_token = generate_token(user_id)
-                    return jsonify({"message": "Logged in successfully", "jwt_token": jwt_token}), 200
+                    return jsonify({"message": "Logged in successfully", "jwt_token": jwt_token, "user_data": user_data}), 200
                 else:
                     return jsonify({"error": "Email not verified! Please verify your email"}), 400
             else:
@@ -160,7 +175,11 @@ def forgot_password():
             link = url_for("auth.reset_password", token=token, _external = True)
             msg.body = f"Please click on the link to reset your password: {link}"
             mail.send(msg)
-            return jsonify({"message": "Password reset link sent"}), 200
+            user_data = {
+                "email": email,
+                "firstName": user["firstName"]
+            }
+            return jsonify({"message": "Password reset link sent", "user_data": user_data}), 200
         else:
             return jsonify({"error": "User does not exist"}), 400
     return jsonify({"message": "Forgot password endpoint ready"}), 200
