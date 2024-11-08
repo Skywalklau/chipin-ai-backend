@@ -12,5 +12,6 @@ opencv-python
 torch
 pytesseract
 fuzzywuzzy
+python-Levenshtein
 requests
 Flask-Cors

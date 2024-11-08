@@ -39,7 +39,7 @@ def calculate_total_for_user(user_id, session):
 @token_required
 def create_session(current_user_id):
     data = request.get_json()
-    session_name = f"{datetime.datetime.now()} - {data.get("restaurantName")}"
+    session_name = f"{datetime.datetime.now()} - {data.get('restaurantName')}"
     session_positions = []
     total = 0
     admin_id = str(current_user_id)
