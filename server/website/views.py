@@ -5,11 +5,12 @@ from .recc import get_recommendations
 from .ocr import processReceipt
 import numpy as np
 import requests
+from bson.objectid import ObjectId
 
 views = Blueprint('views', __name__)
 
 
-@views.route('/')
+@views.route('/', methods=['GET'])
 @token_required
 def index(current_user_id):
     user_id = str(current_user_id)
@@ -29,8 +30,16 @@ def index(current_user_id):
 @token_required
 def get_user(current_user_id):
     user_id = str(current_user_id)
-    user = users_collection.find_one({"_id": user_id})
-    return jsonify({"user": user}), 200
+    user = users_collection.find_one({"_id": ObjectId(user_id)})
+    if user:
+        user_data = {
+            "user_id": str(user["_id"]),
+            "email": user["email"],
+            "firstName": user["firstName"],
+        }
+        return jsonify({"user": user_data}), 200
+    else:
+        return jsonify({"error": "User not found"}), 404
 
 @views.route("/scan_image")
 @token_required
@@ -43,10 +52,11 @@ def upload_image():
     if 'image' not in request.files:
         return jsonify({"error": "No image file provided"}), 400
     image = request.files['image']
-    receipt_text = processReceipt(image)
+    restaurant_details, receipt_text = processReceipt(image)
 
     session_data = {
-        "restaurantName": "sample restaurant",
+        "restaurantName": restaurant_details[0],
+        "restaurantDetails": restaurant_details,
         "receipt": receipt_text
     }
     session_url = url_for("sessions.create_session", _external=True)
