@@ -16,11 +16,11 @@ def create_session(current_user_id):
     data = request.get_json()
     restaurant_details = data.get("restaurantDetails")
     session_name = f"{datetime.datetime.now()} - {data.get('restaurantName')}"
-    session_positions = []
+    receipt = data.get("receipt")
+    session_positions = [{} for _ in range(len(receipt))]
     total = 0
     admin_id = str(current_user_id)
-    created_at = str(datetime.datetime.now())
-    receipt = data.get("receipt")
+    created_at = str(datetime.datetime.now())    
     status = "active"
     participants = [str(current_user_id)]
     session = {
@@ -63,8 +63,9 @@ def get_old_sessions(current_user_id):
 def calculate_total_for_user(user_id, session):
     total = 0
     for position in session['session_positions']:
-        if position['buyer'] == user_id:
-            total += position['price']
+        if position.get('buyer') and position.get('price'):
+            if position['buyer'] == user_id:
+                total += position['price']
     return total
 
 
@@ -134,7 +135,7 @@ def update_session(current_user_id):
         positions[position_index]["buyer"] = current_user_id
         positions[position_index]["item_name"] = item_name
         positions[position_index]["price"] = amount
-        total = sum([position["price"] for position in positions])
+        total = sum([position["price"] for position in positions if position.get("price")])
         sessions_collection.update_one(
             {"_id": ObjectId(session_id)},
             {"$set": {"session_positions": positions, "total": total}}
