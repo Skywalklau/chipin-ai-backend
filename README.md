@@ -323,7 +323,24 @@ https://chipinai-backend.onrender.com
 ```json
 {
   "recommendations": "list",
-  "previous_sessions": "list(list())"
+  "previous_sessions": [
+                    {
+            "session_name": "string",
+            "session_positions": [          
+                {
+                    "buyer": "string",
+                    "item": "string",
+                    "price": "int"
+                },
+            ],
+            "total": "float",
+            "admin_id": "string",
+            "created_at": "string",
+            "receipt": "list(list())",
+            "status": "string",
+            "participants": ["string"]
+        }
+    ]
 }
 ```
 
@@ -403,6 +420,7 @@ https://chipinai-backend.onrender.com
 ```json
 {
     "message": "Image uploaded successfully",
+    "itemName": "string",
     "session_id": "string"
 }
 ```
@@ -432,7 +450,8 @@ https://chipinai-backend.onrender.com
             "session_name": "string",
             "positions": "string",
             "total_for_person": "float",
-            "total": "float"
+            "total": "float",
+            "created_at": "string"
         }
     ]
 ```
@@ -471,13 +490,19 @@ https://chipinai-backend.onrender.com
     "session_id": "string",
     "session": {
         "session_name": "string",
-        "session_positions": "list",
+        "session_positions": [          // will be empty atp
+            {
+                "buyer": "string",
+                "item": "string",
+                "price": "int"
+            },
+        ],
         "total": "float",
         "admin_id": "string",
         "created_at": "string",
         "receipt": "list(list())",
         "status": "string",
-        "participants": "list()"
+        "participants": ["string"]
     },
     "restaurantDetails": "list"
 ```
@@ -503,10 +528,16 @@ https://chipinai-backend.onrender.com
     "session_data": {
         "session_name": "string",
         "isClosed": "Bool",
-        "positions": "list",
+        "positions": [          
+            {
+                "buyer": "string",
+                "item": "string",
+                "price": "int"
+            },
+        ],
         "total_for_person": "float",
         "total": "float",
-        "participants": "list",
+        "participants": ["string"],
         "created_at": "string",
         "receipt": "list(list())",
     }
@@ -573,6 +604,7 @@ https://chipinai-backend.onrender.com
 {
     "session_id": "string",
     "positionIndex": "int",
+    "itemName": "string",
     "amount": "int"
 }
 ```
