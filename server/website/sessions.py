@@ -10,31 +10,6 @@ from flask_socketio import emit
 sessions = Blueprint('sessions', __name__)
 
 
-@sessions.route('/get_old_sessions', methods=['GET'])
-@token_required
-def get_old_sessions(current_user_id):
-    sessions = list(sessions_collection.find({"participants": current_user_id}))
-
-    response_list = []
-    for session in sessions:
-        session_data = {
-            "session_name": session["session_name"],
-            "positions": session["positions"],
-            "total_for_person": float(calculate_total_for_user(current_user_id, session)),
-            "total": float(session["total"])
-        }
-        response_list.append(session_data)
-    return jsonify({"sessions_list": response_list}), 200
-
-
-def calculate_total_for_user(user_id, session):
-    total = 0
-    for position in session['positions']:
-        if position['buyer'] == user_id:
-            total += position['price']
-    return total
-
-
 @sessions.route('/create_session', methods=['POST'])
 @token_required
 def create_session(current_user_id):
@@ -65,6 +40,33 @@ def create_session(current_user_id):
 
 
     return jsonify({"message": "Session created", "session_id": session_id, "session": dict(session), "restaurantDetails": restaurant_details}), 201
+
+
+@sessions.route('/get_old_sessions', methods=['GET'])
+@token_required
+def get_old_sessions(current_user_id):
+    sessions = list(sessions_collection.find({"participants": current_user_id}))
+
+    response_list = []
+    for session in sessions:
+        session_data = {
+            "session_name": session["session_name"],
+            "positions": session["positions"],
+            "total_for_person": float(calculate_total_for_user(current_user_id, session)),
+            "total": float(session["total"]),
+            "created_at": str(session["created_at"]),
+        }
+        response_list.append(session_data)
+    return jsonify({"sessions_list": response_list}), 200
+
+
+def calculate_total_for_user(user_id, session):
+    total = 0
+    for position in session['positions']:
+        if position['buyer'] == user_id:
+            total += position['price']
+    return total
+
 
 @sessions.route('get_session/<session_id>', methods=['GET'])
 @token_required
@@ -118,6 +120,7 @@ def update_session(current_user_id):
     data = request.get_json()
     session_id = data.get("sessionId")
     position_index = int(data.get("positionIndex"))
+    item_name = data.get("itemName")
     amount = int(data.get("amount"))
     session = sessions_collection.find_one({'_id': ObjectId(session_id)})
 
@@ -127,6 +130,8 @@ def update_session(current_user_id):
         if position_index < 0 or position_index >= len(positions):
             return jsonify({"error": "Position not found"}), 404
         
+        positions[position_index]["buyer"] = current_user_id
+        positions[position_index]["item_name"] = item_name
         positions[position_index]["price"] = amount
         total = sum([position["price"] for position in positions])
         sessions_collection.update_one(
