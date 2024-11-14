@@ -72,13 +72,14 @@ def register():
                 "verified": True                                #  HACK: temp 
             }
             user_id = users_collection.insert_one(new_user).inserted_id
+            user_id = str(user_id)
             jwt_token = generate_token(user_id)                 #  HACK: temp 
 
             # login_user(new_user, remember=True)
             # log_activity("signup", f"User {new_user.firstName} signed up")
             # log_activity("verification_email_sent", f"User {new_user.firstName} was sent the verification email")
             
-            return jsonify({"message": "Verification mail sent", "jwt_token": jwt_token}), 201    #  HACK: temp                 
+            return jsonify({"message": "Registered successfully", "jwt_token": jwt_token}), 201    #  HACK: temp                 
 
     return jsonify({"message": "Signup endpoint ready"}), 200
 
