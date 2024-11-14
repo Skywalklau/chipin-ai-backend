@@ -16,9 +16,14 @@ def index(current_user_id):
     user_id = str(current_user_id)
 
     previous_sessions = list(sessions_collection.find({"participants": user_id}).sort("created_at", -1).limit(4))
+    for session in previous_sessions:
+        session["_id"] = str(session["_id"]) # Convert ObjectId to string
+
+
     new_user = np.array([[3, 4.0, 4.0, 0.0, 0.0, 0.0, 0.0, 4.0, 4.0, 0.0, 0.0, 4.0, 0.0, 4.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 4.0, 0.0, 4.0, 0, 0, 0, 2.0, 0.6666666666666666, 0.6666666666666666]])
     recommendations = get_recommendations(new_user)
     recommendations_dict = recommendations.to_dict(orient="records")
+    
     return jsonify({"recommendations": recommendations_dict, "previous_sessions": previous_sessions}), 200
 
 

@@ -37,7 +37,7 @@ def create_session(current_user_id):
     socketio.emit('session_created', {"session": dict(session), "session_id": session_id})
 
     socketio.emit("user_joined", {"session_id": session_id, "user_id": current_user_id})
-
+    session["_id"] = str(session_id)    
 
     return jsonify({"message": "Session created", "session_id": session_id, "session": dict(session), "restaurantDetails": restaurant_details}), 201
 
@@ -51,7 +51,7 @@ def get_old_sessions(current_user_id):
     for session in sessions:
         session_data = {
             "session_name": session["session_name"],
-            "positions": session["positions"],
+            "positions": session["session_positions"],
             "total_for_person": float(calculate_total_for_user(current_user_id, session)),
             "total": float(session["total"]),
             "created_at": str(session["created_at"]),
@@ -62,7 +62,7 @@ def get_old_sessions(current_user_id):
 
 def calculate_total_for_user(user_id, session):
     total = 0
-    for position in session['positions']:
+    for position in session['session_positions']:
         if position['buyer'] == user_id:
             total += position['price']
     return total
@@ -70,15 +70,14 @@ def calculate_total_for_user(user_id, session):
 
 @sessions.route('get_session/<session_id>', methods=['GET'])
 @token_required
-def get_session(current_user_id, session_id):
-    data = request.get_json()
+def get_session(current_user_id, session_id):    
     session = sessions_collection.find_one({'_id': ObjectId(session_id)})
 
     if session:
         session_data = {
             "session_name": session["session_name"],
             "isClosed": session.get("status") == "closed",
-            "positions": session["positions"],
+            "positions": session["session_positions"],
             "total_for_person": float(calculate_total_for_user(current_user_id, session)),
             "total": float(session["total"]),
             "participants": session["participants"],
@@ -107,7 +106,7 @@ def join_session():
             {'_id': ObjectId(session_id)},
             {'$push': {'participants': current_user_id}}
         )
-        socketio.emit("user_joined", {"session_id": session_id, "user_id": current_user_id}, broadcast=True)
+        socketio.emit("user_joined", {"session_id": session_id, "user_id": current_user_id})
         
         return jsonify({'message': 'Joined session successfully'}), 200
     else:
@@ -123,11 +122,13 @@ def update_session(current_user_id):
     item_name = data.get("itemName")
     amount = int(data.get("amount"))
     session = sessions_collection.find_one({'_id': ObjectId(session_id)})
-
+    print(session_id)
     if session:        
-        positions = session.get("positions")
-
-        if position_index < 0 or position_index >= len(positions):
+        positions = session.get("session_positions")
+        if len(positions) == 0:
+            # initialise positions
+            positions = [{"buyer": current_user_id, "item_name": item_name, "price": amount}]            
+        elif position_index < 0 or position_index >= len(positions):
             return jsonify({"error": "Position not found"}), 404
         
         positions[position_index]["buyer"] = current_user_id
@@ -136,7 +137,7 @@ def update_session(current_user_id):
         total = sum([position["price"] for position in positions])
         sessions_collection.update_one(
             {"_id": ObjectId(session_id)},
-            {"$set": {"positions": positions, "total": total}}
+            {"$set": {"session_positions": positions, "total": total}}
         )
         socketio.emit("session_updated", {"session_id": session_id, "positions": positions, "total": total})
         return jsonify({"message": "Session updated successfully"}), 200
@@ -192,7 +193,7 @@ def join_link(session_id):
             {'_id': ObjectId(session_id)},
             {'$push': {'participants': current_user_id}}
         )
-        socketio.emit("user_joined", {"session_id": session_id, "user_id": current_user_id}, broadcast=True)
+        socketio.emit("user_joined", {"session_id": session_id, "user_id": current_user_id})
         return jsonify({'message': 'Joined session successfully'}), 200
     else:
         return jsonify({'message': 'Session not found'}), 404
