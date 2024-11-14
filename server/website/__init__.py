@@ -39,7 +39,7 @@ def create_app():
 
     app.config["MONGO_URI"] = getenv("MONGO_URI")
     
-    CORS(app)
+    # CORS(app)                         # HACK: temp
     mail.init_app(app)
     mongo.init_app(app)
 
