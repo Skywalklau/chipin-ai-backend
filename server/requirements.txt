@@ -18,3 +18,4 @@ requests
 Flask-Cors
 gunicorn
 uwsgi
+joblib

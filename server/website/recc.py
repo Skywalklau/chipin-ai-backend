@@ -6,6 +6,7 @@ import torch.nn as nn
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from sklearn.model_selection import train_test_split
 import os
+import joblib
 
 recc = Blueprint('recc', __name__)
 
@@ -83,6 +84,7 @@ model.eval()
 
 
 def get_recommendations(new_user):
+    scalerUser = joblib.load("scaler_user.pkl")
     new_user_scaled = scalerUser.transform(new_user)
 
     new_user_tensor = torch.tensor(new_user_scaled, dtype=torch.float32).to(device)
@@ -92,8 +94,11 @@ def get_recommendations(new_user):
 
     predictions = model(new_user_batch, item_tensor)
 
+    scalerTarget = joblib.load('scaler_target.pkl')
     predictions_inverse = scalerTarget.inverse_transform(predictions.reshape(-1, 1).detach().cpu().numpy())
     top_10_indices = predictions_inverse.flatten().argsort()[-10:][::-1]
+    # log the top 10 recommendations
+    print(item_train_df.iloc[top_10_indices])
     return(item_train_df.iloc[top_10_indices])
 
 @recc.route('/get-recc', methods=['GET'])
