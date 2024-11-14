@@ -69,7 +69,7 @@ def register():
                 "email": email,
                 "firstName": firstName,
                 "password": generate_password_hash(password1, method='pbkdf2:sha256'),
-                "verified": False
+                "verified": True                                #  HACK: temp 
             }
             user_id = users_collection.insert_one(new_user).inserted_id
             jwt_token = generate_token(user_id)                 #  HACK: temp 
