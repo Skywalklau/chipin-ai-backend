@@ -57,12 +57,13 @@ def register():
         elif password1 != password2:
             return jsonify({"error": "Passwords don't match"}), 400
         else:
-            token = s.dumps(email, salt='email-confirm')
+            # confirm email stuff                            #  HACK: temp 
+            # token = s.dumps(email, salt='email-confirm')
 
-            msg = Message("Verify email", recipients=[email])
-            link = url_for("auth.confirm_email", token=token, _external = True)
-            msg.body = f"Please click on the link to verify your email: {link}"
-            mail.send(msg)
+            # msg = Message("Verify email", recipients=[email])
+            # link = url_for("auth.confirm_email", token=token, _external = True)
+            # msg.body = f"Please click on the link to verify your email: {link}"
+            # mail.send(msg)
 
             new_user = {
                 "email": email,
@@ -71,19 +72,13 @@ def register():
                 "verified": False
             }
             user_id = users_collection.insert_one(new_user).inserted_id
-
-            user_data = {
-                "user_id": str(user_id),
-                "email": email,
-                "firstName": firstName,
-                "created_at": str(datetime.datetime.utcnow())
-            }
+            jwt_token = generate_token(user_id)                 #  HACK: temp 
 
             # login_user(new_user, remember=True)
             # log_activity("signup", f"User {new_user.firstName} signed up")
             # log_activity("verification_email_sent", f"User {new_user.firstName} was sent the verification email")
             
-            return jsonify({"message": "Verification mail sent", "user_data": user_data}), 201                    
+            return jsonify({"message": "Verification mail sent", "jwt_token": jwt_token}), 201    #  HACK: temp                 
 
     return jsonify({"message": "Signup endpoint ready"}), 200
 
