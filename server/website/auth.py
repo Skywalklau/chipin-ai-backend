@@ -234,3 +234,33 @@ def settings(current_user_id):
         
     users_collection.update_one({"_id": ObjectId(current_user_id)}, {"$set": user})
     return jsonify({"message": "User updated successfully"}), 200
+
+
+@auth.route("/delete_account", methods=["DELETE"])
+@token_required
+def delete_account(current_user_id):
+    users_collection.delete_one({"_id": ObjectId(current_user_id)})
+    return jsonify({"message": "Account deleted successfully"}), 200
+
+
+@auth.route("/get_admin", methods=["GET"])
+def get_admin():
+    data = request.get_json()
+    session_id = data.get("session_id")
+    if not session_id:
+        return jsonify({"error": "Session ID is required"}), 400
+    
+    session = sessions_collection.find_one({"_id": ObjectId(session_id)})
+    if not session:
+        return jsonify({"error": "Session not found"}), 404
+
+    admin_id = session.get("admin_id")
+    admin = users_collection.find_one({"_id": ObjectId(admin_id)})
+    if not admin:
+        return jsonify({"error": "Admin not found"}), 404
+    admin_data = {
+        "id": admin["_id"],
+        "email": admin["email"],
+        "firstName": admin["firstName"]        
+    }
+    return jsonify({"admin": admin_data}), 200
