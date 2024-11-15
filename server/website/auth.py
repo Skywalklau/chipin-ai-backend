@@ -57,33 +57,29 @@ def register():
         elif password1 != password2:
             return jsonify({"error": "Passwords don't match"}), 400
         else:
-            token = s.dumps(email, salt='email-confirm')
+            # confirm email stuff                            #  HACK: temp 
+            # token = s.dumps(email, salt='email-confirm')
 
-            msg = Message("Verify email", recipients=[email])
-            link = url_for("auth.confirm_email", token=token, _external = True)
-            msg.body = f"Please click on the link to verify your email: {link}"
-            mail.send(msg)
+            # msg = Message("Verify email", recipients=[email])
+            # link = url_for("auth.confirm_email", token=token, _external = True)
+            # msg.body = f"Please click on the link to verify your email: {link}"
+            # mail.send(msg)
 
             new_user = {
                 "email": email,
                 "firstName": firstName,
                 "password": generate_password_hash(password1, method='pbkdf2:sha256'),
-                "verified": False
+                "verified": True                                #  HACK: temp 
             }
             user_id = users_collection.insert_one(new_user).inserted_id
-
-            user_data = {
-                "user_id": str(user_id),
-                "email": email,
-                "firstName": firstName,
-                "created_at": str(datetime.datetime.utcnow())
-            }
+            user_id = str(user_id)
+            jwt_token = generate_token(user_id)                 #  HACK: temp 
 
             # login_user(new_user, remember=True)
             # log_activity("signup", f"User {new_user.firstName} signed up")
             # log_activity("verification_email_sent", f"User {new_user.firstName} was sent the verification email")
             
-            return jsonify({"message": "Verification mail sent", "user_data": user_data}), 201                    
+            return jsonify({"message": "Registered successfully", "jwt_token": jwt_token}), 201    #  HACK: temp                 
 
     return jsonify({"message": "Signup endpoint ready"}), 200
 
@@ -152,15 +148,15 @@ def login():
     return jsonify({"message": "Login endpoint ready"}), 200
 
 
-@auth.route("/logout")
-@token_required
-def logout(current_user_id):
-    token = request.headers.get('x-access-token')
-    if not token:
-        return jsonify({"message": "Token is missing!"}), 400
-    logout_user()
-    session.pop('user', None)
-    return jsonify({"message": "Logged out successfully"}), 200
+# @auth.route("/logout")
+# @token_required
+# def logout(current_user_id):
+#     token = request.headers.get('x-access-token')
+#     if not token:
+#         return jsonify({"message": "Token is missing!"}), 400
+#     logout_user()
+#     session.pop('user', None)
+#     return jsonify({"message": "Logged out successfully"}), 200
 
 
 @auth.route("/forgot_password", methods=['GET', 'POST'])
@@ -238,3 +234,31 @@ def settings(current_user_id):
         
     users_collection.update_one({"_id": ObjectId(current_user_id)}, {"$set": user})
     return jsonify({"message": "User updated successfully"}), 200
+
+
+@auth.route("/delete_account", methods=["DELETE"])
+@token_required
+def delete_account(current_user_id):
+    users_collection.delete_one({"_id": ObjectId(current_user_id)})
+    return jsonify({"message": "Account deleted successfully"}), 200
+
+
+@auth.route("/get_admin/<session_id>", methods=["GET"])
+def get_admin(session_id):
+    if not session_id:
+        return jsonify({"error": "Session ID is required"}), 400
+    
+    session = sessions_collection.find_one({"_id": ObjectId(session_id)})
+    if not session:
+        return jsonify({"error": "Session not found"}), 404
+
+    admin_id = session.get("admin_id")
+    admin = users_collection.find_one({"_id": ObjectId(admin_id)})
+    if not admin:
+        return jsonify({"error": "Admin not found"}), 404
+    admin_data = {
+        "id": str(admin["_id"]),
+        "email": admin["email"],
+        "firstName": admin["firstName"]        
+    }
+    return jsonify({"admin": admin_data}), 200

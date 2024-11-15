@@ -17,3 +17,6 @@ python-Levenshtein
 requests
 Flask-Cors
 gunicorn
+uwsgi
+eventlet
+joblib

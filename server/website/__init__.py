@@ -7,6 +7,7 @@ from flask_cors import CORS
 from flask_socketio import SocketIO
 from dotenv import load_dotenv
 from os import getenv
+import ssl  
 
 load_dotenv()
 
@@ -15,7 +16,7 @@ MONGO_USERS_COLC = getenv("MONGO_USERS_COLLECTION")
 MONGO_SESSIONS_COLC = getenv("MONGO_SESSIONS_COLLECTION")
 
 mongo = PyMongo()
-client = MongoClient(getenv("MONGO_CLIENT"))
+client = MongoClient(getenv("MONGO_CLIENT"), tls=True, tlsAllowInvalidCertificates=True)
 db = client.MONGO_DB  # Database name
 users_collection = db.MONGO_USERS_COLC  # Users collection
 sessions_collection = db.MONGO_SESSIONS_COLC  # Sessions collection
@@ -38,7 +39,7 @@ def create_app():
 
     app.config["MONGO_URI"] = getenv("MONGO_URI")
     
-    CORS(app)
+    CORS(app, resources={r"/*": {"origins": "http://localhost:3000"}})                      # HACK: temp
     mail.init_app(app)
     mongo.init_app(app)
 

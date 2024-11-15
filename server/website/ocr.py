@@ -11,12 +11,15 @@ import platform
 
 ocr = Blueprint('ocr', __name__)
 
-if platform.system() == 'Windows':
-    pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
-elif platform.system() == 'Darwin':  # macOS
-    pytesseract.pytesseract.tesseract_cmd = '/usr/local/bin/tesseract'
-else:  # Linux
-    pytesseract.pytesseract.tesseract_cmd = '/usr/bin/tesseract'
+# if platform.system() == 'Windows':
+#     pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+# elif platform.system() == 'Darwin':  # macOS
+#     pytesseract.pytesseract.tesseract_cmd = '/usr/local/bin/tesseract'
+# else:  # Linux
+#     pytesseract.pytesseract.tesseract_cmd = '/usr/bin/tesseract'
+
+pytesseract.pytesseract.tesseract_cmd = '/usr/bin/tesseract'
+
 
 # img = cv.imread('images/image25.jpg')
 # aspect_ratio = img.shape[1] / img.shape[0]
