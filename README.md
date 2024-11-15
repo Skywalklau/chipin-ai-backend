@@ -736,6 +736,67 @@ https://chipinai-backend.onrender.com
 }
 ```
 
+### 20. Delete Account
+
+**Endpoint:** `/delete_account`
+
+**Method:** `DELETE`
+
+
+**Headers**
+```
+    "x-access-token": "string"
+```
+
+
+**Response:**
+- 200
+```json
+    "message": "Account deleted successfully"
+```
+
+
+### 21. Get Admin
+
+**Endpoint:** `/get_admin`
+
+**Method:** `GET`
+
+
+
+**Request:**
+- `session_id`: `string`
+
+
+**Response:**
+- 200
+```json
+{
+    "admin": {
+        "id": "string",
+        "email": "string",
+        "firstName": "string"
+    }
+}
+```
+- 400
+```json
+{
+    "error": "Session ID is required"
+}
+```
+- 404
+```json
+{
+    "error": "Session not found"
+}
+```
+- 404
+```json
+{
+    "error": "Admin not found"
+}
+```
 
 ## SocketIO Events
 
