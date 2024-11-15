@@ -7,6 +7,9 @@ import numpy as np
 import requests
 from bson.objectid import ObjectId
 import datetime
+from PIL import Image
+import cv2 as cv
+import os
 
 views = Blueprint('views', __name__)
 
@@ -54,7 +57,26 @@ def upload_image(current_user_id):
     if 'image' not in request.files:
         return jsonify({"error": "No image file provided"}), 400
     image = request.files['image']
-    restaurant_details, receipt_text = processReceipt(image)
+    # print(type(image))
+    try:
+        img = Image.open(image)        
+        # img = img.convert('RGB')
+        img = np.array(img)
+        # img_dir = 'server/website/static'
+        # if not os.path.exists(img_dir):
+        #     os.makedirs(img_dir)
+        
+        # # Save the image as a JPG file
+        # img_filename = f"receipt.jpg"
+        # img_path = os.path.join(img_dir, img_filename)
+
+        # img.save(img_path, 'JPEG')
+        # # img = cv.cvtColor(img, cv.COLOR_RGB2BGR)
+        # image2 = cv.imread("./static/receipt.jpg")
+    except Exception as e:
+        return jsonify({"error": f"Failed to convert image to JPG: {str(e)}"}), 400
+        
+    restaurant_details, receipt_text = processReceipt(img)
 
     session_data = {
         "restaurantName": restaurant_details[0],

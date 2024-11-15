@@ -11,12 +11,15 @@ import platform
 
 ocr = Blueprint('ocr', __name__)
 
-if platform.system() == 'Windows':
-    pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
-elif platform.system() == 'Darwin':  # macOS
-    pytesseract.pytesseract.tesseract_cmd = '/usr/local/bin/tesseract'
-else:  # Linux
-    pytesseract.pytesseract.tesseract_cmd = '/usr/bin/tesseract'
+# if platform.system() == 'Windows':
+#     pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+# elif platform.system() == 'Darwin':  # macOS
+#     pytesseract.pytesseract.tesseract_cmd = '/usr/local/bin/tesseract'
+# else:  # Linux
+#     pytesseract.pytesseract.tesseract_cmd = '/usr/bin/tesseract'
+
+pytesseract.pytesseract.tesseract_cmd = '/usr/bin/tesseract'
+
 
 # img = cv.imread('images/image25.jpg')
 # aspect_ratio = img.shape[1] / img.shape[0]
@@ -28,7 +31,7 @@ LINE_PADDING = 5
 ACCEPTED_TEXT_PROBABILITY = 0.3
 RECEIPT_AREA = 20000
 CROP_MARGIN_PERCENTAGE = 0.03  # 3% crop from all sides
-PERCENTAGE_OF_RECEIPT_IN_FRAME = 0.5
+PERCENTAGE_OF_RECEIPT_IN_FRAME = 0.6
 
 DATE_PATTERN = r'(\d{1,2}[-/.\s]\d{1,2}[-/.\s]\d{2,4})'
 DECIMAL_NUMBER_PATTERN = r'^\d*\.\d+$'
@@ -42,6 +45,7 @@ PERCENTAGE_PATTERN = r'([1-9][0-9]?|100)%'
 CC_PATTERN = r'\bC[ce]\b' 
 THOUSAND_DOLLAR_PATTERN = r"^[-~]?[£$€]?[-~]?\d{1,3}(,\d{3})*(\.\d+)?$"
 DECIMAL_DOLLAR_PATTERN = r"^[-~]?[£$€]?[-~]?\d+,\d{2}$"
+LINE_TERMINATOR_PATTERN = re.compile(r"\b(?:TOTAL|VAT|AT|AMOUNT|CARD|DISCOUNT|SUBTOTAL|SUBLOLAL)\b", re.IGNORECASE)
 
 
 UNWANTED_STRINGS = set(["=——", "=—", "»", "©"])
@@ -53,10 +57,10 @@ LINE_TERMINATOR_KEYWORDS = set(["TOTAL", "Total", "VAT", "AT", "AMOUNT", "Amount
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 
-unwantedStringsFilePath = os.path.join(current_dir, "../dataSets/unwanted_strings.txt")
-shopNamesFilePath = os.path.join(current_dir, "../dataSets/shop_names.txt")
+unwantedStringsFilePath = os.path.join(current_dir, "dataSets/unwanted_strings.txt")
+shopNamesFilePath = os.path.join(current_dir, "dataSets/shop_names.txt")
 # currencySymbolsFilePath = "dataSets/currency_symbols.txt"
-keywordAdressesFilePath = os.path.join(current_dir, "../dataSets/keyword_addresses.txt")
+keywordAdressesFilePath = os.path.join(current_dir, "dataSets/keyword_addresses.txt")
 
 def getDataFromFiles(filePath, set):
     with open(filePath, 'r') as file:
@@ -68,24 +72,6 @@ getDataFromFiles(unwantedStringsFilePath, UNWANTED_STRINGS)
 getDataFromFiles(shopNamesFilePath, SHOP_NAMES)
 getDataFromFiles(keywordAdressesFilePath, KEYWORD_ADDRESS)
 
-# Ensure output folder exists
-output_dir = "cropped_images"
-os.makedirs(output_dir, exist_ok=True)
-largest_cnt = None
-
-# def preProcessFrame(img, brightness=-30, contrast=0.6):
-#     gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
-#     blurred = cv.GaussianBlur(gray, (5, 5), 2)
-#     rectKernel = cv.getStructuringElement(cv.MORPH_RECT, (5, 5))
-#     dilate = cv.dilate(blurred, rectKernel, iterations=2)
-#     edged = cv.Canny(dilate, 20, 80, apertureSize=3)
-#     threshold = np.mean(edged)
-#     thresh, binary = cv.threshold(edged, threshold, 255, cv.THRESH_BINARY)
-#     rectKernel = cv.getStructuringElement(cv.MORPH_RECT, (5, 5))
-#     dilated = cv.dilate(binary, rectKernel, iterations=1)
-
-#     return dilated
-
 def preProcessReceipt(img):
     grayscale = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
     h = 20
@@ -96,20 +82,6 @@ def preProcessReceipt(img):
     invertedImg = cv.bitwise_not(imgBlackAndWhite)
     imgErode = cv.erode(invertedImg, (5, 5), iterations=0)
     imgResult = cv.dilate(imgErode, (5, 5), iterations=0)
-    return imgResult
-
-def preProcessSkewReceipt(img):
-    grayscale = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
-    h = 20
-    denoisedImg = cv.fastNlMeansDenoising(grayscale, h=h)
-    blockSize = 15
-    C = 2
-    imgBlackAndWhite = cv.adaptiveThreshold(denoisedImg, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY, blockSize, C)
-    invertedImg = cv.bitwise_not(imgBlackAndWhite)
-    imgErode = cv.erode(invertedImg, (5, 5), iterations=0)
-    imgDilate = cv.dilate(imgErode, (5, 5), iterations=0)
-    kernel = cv.getStructuringElement(cv.MORPH_RECT, (20, 5))
-    imgResult = cv.dilate(imgDilate, kernel)
     return imgResult
 
 def extractReceipt(img):
@@ -158,53 +130,6 @@ def extractReceipt(img):
     # cv.destroyAllWindows()
 
     return None
-
-def get_skewed_img(original, img):
-    contours, _ = cv.findContours(img, cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE)
-    angles = []
-    for contour in contours:
-        minAreaRect = cv.minAreaRect(contour)
-        angle = minAreaRect[-1]
-        if angle != 90.0 and angle != -0.0: #filter out 0 and 90
-            angles.append(angle)
-    
-    angles.sort()
-    mid_angle = angles[int(len(angles)/2)]
-
-    if mid_angle > 45: #anti-clockwise
-        mid_angle = -(90 - mid_angle)
-    
-    # print(mid_angle)
-    if mid_angle >= 15 or mid_angle <= -15: return original
-    
-    height = original.shape[0]
-    width = original.shape[1]
-    m = cv.getRotationMatrix2D((width / 2, height / 2), mid_angle, 1)
-    deskewed = cv.warpAffine(original, m, (width, height), borderValue=(0,0,0))
-
-    return deskewed
-
-# def getLargestContour(img):
-#     # Convert to grayscale if the image is not already
-#     if len(img.shape) == 3:  # If the image has 3 channels (color)
-#         img = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
-    
-#     # Find contours on the preprocessed image
-#     contours, _ = cv.findContours(img, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
-    
-#     # Return the largest contour by area
-#     largest_contour = max(contours, key=cv.contourArea)
-#     return largest_contour
-
-# def crop_by_percentage(img, contour, crop_percentage):
-#     x, y, w, h = cv.boundingRect(contour)
-#     # Calculate the crop margin
-#     margin_w = int(w * crop_percentage)
-#     margin_h = int(h * crop_percentage)
-#     # Apply the margin to crop the image
-#     cropped = img[y + margin_h: y + h - margin_h, x + margin_w: x + w - margin_w]
-#     return cropped
-
 
 def cleanCommaNumber(num_string):
     # Check and replace based on matched pattern
@@ -290,6 +215,7 @@ def getOCRDetails(image, custom_config, y_threshold=10, conf_threshold=ACCEPTED_
             #  or re.match(PRICE_PATTERN, line[-2])
             if re.match(PRICE_PATTERN, line[-1]): # food item line, also total price
                 if line[0] in LINE_TERMINATOR_KEYWORDS: break
+                if LINE_TERMINATOR_PATTERN.search(" ".join(line)): break
 
                 # detected some anomaly on last index, but 2nd last index is a price
                 # if re.match(PRICE_PATTERN, line[-1]) == None and re.match(PRICE_PATTERN, line[-2]):
@@ -338,6 +264,11 @@ def getOCRDetails(image, custom_config, y_threshold=10, conf_threshold=ACCEPTED_
                     if re.match(DATE_PATTERN, line[0]) or re.match(DATE_PATTERN, line[1]): continue
                     foodItems.append([1, " ".join(line[:-1]), total])
             
+            # if price is not detected but percentage detected
+            # it is a discount
+            elif re.match(PERCENTAGE_PATTERN, line[0]):
+                foodItems.append([1, " ".join(line), 0])
+
     return lines, details, foodItems
 
 def getProcessedFoodDetails(foodDetails):
@@ -461,15 +392,12 @@ def processReceipt(img):
 
     # cv.imshow("Processed Frame", receipt)
     
-    imgCanny = preProcessSkewReceipt(receipt)
-    deskewedReceipt = get_skewed_img(receipt, imgCanny)
-    
-    imgReceiptCanny = preProcessReceipt(deskewedReceipt)
+    imgReceiptCanny = preProcessReceipt(receipt)
 
     custom_config = r'--oem 3 --psm 6'
 
     pytesseract_data_canny, detailsCanny, foodDetailsCanny = getOCRDetails(imgReceiptCanny, custom_config, conf_threshold=ACCEPTED_TEXT_PROBABILITY, y_threshold=10)
-    pytesseract_data_original, detailsOriginal, foodDetailsOriginal = getOCRDetails(deskewedReceipt, custom_config, conf_threshold=ACCEPTED_TEXT_PROBABILITY, y_threshold=13)
+    pytesseract_data_original, detailsOriginal, foodDetailsOriginal = getOCRDetails(receipt, custom_config, conf_threshold=ACCEPTED_TEXT_PROBABILITY, y_threshold=13)
 
     # print("Canny results:")
     # print(pytesseract_data_canny)
