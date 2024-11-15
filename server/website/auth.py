@@ -148,15 +148,15 @@ def login():
     return jsonify({"message": "Login endpoint ready"}), 200
 
 
-@auth.route("/logout")
-@token_required
-def logout(current_user_id):
-    token = request.headers.get('x-access-token')
-    if not token:
-        return jsonify({"message": "Token is missing!"}), 400
-    logout_user()
-    session.pop('user', None)
-    return jsonify({"message": "Logged out successfully"}), 200
+# @auth.route("/logout")
+# @token_required
+# def logout(current_user_id):
+#     token = request.headers.get('x-access-token')
+#     if not token:
+#         return jsonify({"message": "Token is missing!"}), 400
+#     logout_user()
+#     session.pop('user', None)
+#     return jsonify({"message": "Logged out successfully"}), 200
 
 
 @auth.route("/forgot_password", methods=['GET', 'POST'])

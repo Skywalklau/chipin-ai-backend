@@ -6,6 +6,7 @@ from .ocr import processReceipt
 import numpy as np
 import requests
 from bson.objectid import ObjectId
+import datetime
 
 views = Blueprint('views', __name__)
 
@@ -69,3 +70,24 @@ def upload_image():
         return jsonify({"message": "Image uploaded successfully", "session_id": session_id}), 200
     else:
         return jsonify({"error": "Failed to upload image"}), 400
+
+
+@views.route("/monthly_report", methods=["GET"])
+@token_required
+def get_monthly_report(current_user_id):
+    user_id = str(current_user_id)
+    user = users_collection.find_one({"_id": ObjectId(user_id)})
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+    
+    one_month_ago = datetime.datetime.now() - datetime.timedelta(days=30)
+    expenditure = 0
+
+    sessions = list(sessions_collection.find({"participants": user_id}))
+    for session in sessions:
+        # convert string to datetime
+        created_at = datetime.datetime.strptime(session["created_at"], "%Y-%m-%d %H:%M:%S.%f")
+        if created_at >= one_month_ago:
+            expenditure += sum([position["price"] for position in session["session_positions"] if position.get("buyer") == user_id])
+
+    return jsonify({"expenditure": expenditure}), 200
