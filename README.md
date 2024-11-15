@@ -798,6 +798,34 @@ https://chipinai-backend.onrender.com
 }
 ```
 
+
+### 22. Monthly report
+
+**Endpoint:** `/monthly_report`
+
+**Method:** `GET`
+
+
+**Headers**
+```
+    "x-access-token": "string"
+```
+
+
+**Response:**
+- 200
+```json
+{
+    "expenditure": "int"
+}
+```
+- 400
+```json
+{
+    "error": "User not found"
+}
+```
+
 ## SocketIO Events
 
 ### 1. Session created
