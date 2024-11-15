@@ -50,7 +50,7 @@ def scan_image():
 
 @views.route("/upload_image", methods=["POST"])
 @token_required
-def upload_image():
+def upload_image(current_user_id):
     if 'image' not in request.files:
         return jsonify({"error": "No image file provided"}), 400
     image = request.files['image']
