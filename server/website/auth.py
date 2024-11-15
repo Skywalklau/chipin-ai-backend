@@ -257,7 +257,7 @@ def get_admin(session_id):
     if not admin:
         return jsonify({"error": "Admin not found"}), 404
     admin_data = {
-        "id": admin["_id"],
+        "id": str(admin["_id"]),
         "email": admin["email"],
         "firstName": admin["firstName"]        
     }
