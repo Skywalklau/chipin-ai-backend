@@ -758,13 +758,12 @@ https://chipinai-backend.onrender.com
 
 ### 21. Get Admin
 
-**Endpoint:** `/get_admin`
+**Endpoint:** `/get_admin/<session_id>`
 
 **Method:** `GET`
 
 
-
-**Request:**
+**Path Parameters:**
 - `session_id`: `string`
 
 

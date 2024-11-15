@@ -243,10 +243,8 @@ def delete_account(current_user_id):
     return jsonify({"message": "Account deleted successfully"}), 200
 
 
-@auth.route("/get_admin", methods=["GET"])
-def get_admin():
-    data = request.get_json()
-    session_id = data.get("session_id")
+@auth.route("/get_admin/<session_id>", methods=["GET"])
+def get_admin(session_id):
     if not session_id:
         return jsonify({"error": "Session ID is required"}), 400
     
